@@ -40,13 +40,13 @@ const App: React.FC = () => {
   const [resetFlag, setResetFlag] = useState(false);
   const [triggerNewPaths, setTriggerNewPaths] = useState(0);
 
-  // 🐜 Utrwalenie stanu Gruntora i czasu startu
   const gruntorIndex = useRef(0);
   const gruntorProgress = useRef(0);
   const startTime = useRef(0);
 
   useEffect(() => {
     const pInst = new p5((s: any) => {
+      let backgroundImg: p5.Image;
       let edges: Edge[] = [];
       let pheromones = new Map<string, number>();
       let bestPath: string[] = [];
@@ -139,24 +139,24 @@ const App: React.FC = () => {
         }
       }
 
-      s.setup = () => {
+      s.setup = async () => {
+        backgroundImg = await s.loadImage("/mapa.png");
         s.createCanvas(1000, 1500);
         s.frameRate(60);
         edges = generateAllEdges();
         initializePheromones();
         findNearestFromBG1();
         regeneratePaths();
-
-        // Reset stanu Gruntora i zegara
         gruntorIndex.current = 0;
         gruntorProgress.current = 0;
         startTime.current = s.millis();
       };
 
       s.draw = () => {
-        if (!shouldRun) return;
+        if (!shouldRun || !backgroundImg) return;
 
-        // Parowanie i depozyt feromonów
+        s.image(backgroundImg, 0, 0, s.width, s.height);
+
         for (let key of pheromones.keys()) {
           pheromones.set(key, pheromones.get(key)! * (1 - rho));
         }
@@ -167,9 +167,6 @@ const App: React.FC = () => {
           const deposit = alpha * (1 / dist);
           pheromones.set(key, (pheromones.get(key) || 0) + deposit);
         }
-
-        s.background(10, 20, 30);
-        s.textSize(16);
 
         const maxP = Math.max(...Array.from(pheromones.values()));
         for (let e of edges) {
@@ -185,7 +182,6 @@ const App: React.FC = () => {
           s.line(A.x, A.y, B.x, B.y);
         }
 
-        // Węzły
         for (let n of nodes) {
           s.fill(255);
           s.noStroke();
@@ -194,7 +190,6 @@ const App: React.FC = () => {
           s.text(n.name, n.x + 10, n.y);
         }
 
-        // Skauci
         animatedScoutAnts.forEach((ant, idx) => {
           if (ant.index < ant.path.length - 1) {
             const A = nodeMap[ant.path[ant.index]];
@@ -214,7 +209,6 @@ const App: React.FC = () => {
           }
         });
 
-        // Gruntor – rusza dopiero po 5s
         const millisElapsed = s.millis() - startTime.current;
         const scoutsReady = animatedScoutAnts.some(
           (ant) => ant.index >= 1 && ant.path[1] === nearestNeighbor
@@ -251,6 +245,7 @@ const App: React.FC = () => {
 
         s.fill(255);
         s.noStroke();
+        s.textSize(16);
         s.text(`α=${alpha.toFixed(2)}  β=${beta.toFixed(2)}  ρ=${rho.toFixed(2)}`, 20, 40);
         s.text(`Gruntor start za: ${Math.max(0, 5 - millisElapsed / 1000).toFixed(1)}s`, 20, 60);
       };
@@ -261,6 +256,15 @@ const App: React.FC = () => {
 
   return (
     <div>
+      <h1 style={{
+      textAlign: "center",
+      marginTop: "20px",
+      fontSize: "40px",
+      color: "#000",
+      fontFamily: "'MedievalSharp', cursive"
+      }}>
+      Przygoda Gruntora
+     </h1>
       <div style={{ padding: 20 }}>
         <label>α (depozyt): {alpha.toFixed(2)} </label>
         <input type="range" min="0" max="5" step="0.1" value={alpha} onChange={(e) => setAlpha(+e.target.value)} />
