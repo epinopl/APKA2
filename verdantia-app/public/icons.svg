@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: none;">
+  <!-- Ant icon -->
+  <symbol id="icon-ant" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="10" stroke="black" stroke-width="2" fill="none"/>
+    <circle cx="22" cy="22" r="6" stroke="black" stroke-width="2" fill="none"/>
+    <circle cx="42" cy="22" r="6" stroke="black" stroke-width="2" fill="none"/>
+    <!-- antennae -->
+    <line x1="22" y1="16" x2="16" y2="8" stroke="black" stroke-width="2"/>
+    <line x1="42" y1="16" x2="48" y2="8" stroke="black" stroke-width="2"/>
+    <!-- legs -->
+    <line x1="26" y1="42" x2="18" y2="54" stroke="black" stroke-width="2"/>
+    <line x1="38" y1="42" x2="46" y2="54" stroke="black" stroke-width="2"/>
+  </symbol>
+
+  <!-- Gruntor icon (helmeted ant) -->
+  <symbol id="icon-gruntor" viewBox="0 0 64 64">
+    <!-- body -->
+    <circle cx="32" cy="32" r="10" fill="#0c0" stroke="black" stroke-width="2"/>
+    <!-- helmet -->
+    <path d="M22 22 L42 22 L38 32 L26 32 Z" fill="#666" stroke="black" stroke-width="2"/>
+    <!-- visor line -->
+    <line x1="26" y1="27" x2="38" y2="27" stroke="black" stroke-width="2"/>
+  </symbol>
+
+  <!-- Castle icon -->
+  <symbol id="icon-castle" viewBox="0 0 64 64">
+    <rect x="12" y="24" width="40" height="28" fill="none" stroke="black" stroke-width="2"/>
+    <rect x="16" y="28" width="8" height="8" fill="none" stroke="black" stroke-width="2"/>
+    <rect x="28" y="28" width="8" height="8" fill="none" stroke="black" stroke-width="2"/>
+    <rect x="40" y="28" width="8" height="8" fill="none" stroke="black" stroke-width="2"/>
+    <!-- towers -->
+    <rect x="8" y="16" width="12" height="36" fill="none" stroke="black" stroke-width="2"/>
+    <rect x="44" y="16" width="12" height="36" fill="none" stroke="black" stroke-width="2"/>
+    <path d="M8 16 L14 8 L20 16 Z" fill="none" stroke="black" stroke-width="2"/>
+    <path d="M56 16 L50 8 L44 16 Z" fill="none" stroke="black" stroke-width="2"/>
+  </symbol>
+
+  <!-- Dragon icon -->
+  <symbol id="icon-dragon" viewBox="0 0 64 64">
+    <path d="M10 50 Q30 20, 54 38 Q48 28, 38 30 Q42 26, 34 22 Q30 18, 26 22 Q22 26, 26 34 Q16 32, 10 50 Z" fill="none" stroke="black" stroke-width="2"/>
+    <polygon points="30,20 34,16 38,20 34,24" fill="none" stroke="black" stroke-width="2"/>
+    <circle cx="36" cy="32" r="2" fill="black"/>
+  </symbol>
+</svg>
