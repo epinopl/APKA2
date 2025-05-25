@@ -138,7 +138,8 @@ const App: React.FC = () => {
           }
         }
       }
-
+      let iterationCount = 0;
+      let gruntorSteps = 0;
       s.setup = async () => {
         backgroundImg = await s.loadImage("/mapa.png");
         s.createCanvas(1000, 1500);
@@ -153,6 +154,7 @@ const App: React.FC = () => {
       };
 
       s.draw = () => {
+        iterationCount++;
         if (!shouldRun || !backgroundImg) return;
 
         s.image(backgroundImg, 0, 0, s.width, s.height);
@@ -211,7 +213,7 @@ const App: React.FC = () => {
 
         const millisElapsed = s.millis() - startTime.current;
         const scoutsReady = animatedScoutAnts.some(
-          (ant) => ant.index >= 1 && ant.path[1] === nearestNeighbor
+        (ant) => ant.index >= 1
         );
         const startReady = millisElapsed > 5000 && scoutsReady;
 
@@ -228,6 +230,7 @@ const App: React.FC = () => {
             const B = nodeMap[bestPath[gruntorIndex.current + 1]];
             const d = Math.hypot(A.x - B.x, A.y - B.y);
             gruntorProgress.current += gruntorSpeed / 60;
+            gruntorSteps += gruntorSpeed / 60 / 2; // 1 krok = 2 piksele
             if (gruntorProgress.current >= d) {
               gruntorIndex.current++;
               gruntorProgress.current = 0;
@@ -248,6 +251,8 @@ const App: React.FC = () => {
         s.textSize(16);
         s.text(`α=${alpha.toFixed(2)}  β=${beta.toFixed(2)}  ρ=${rho.toFixed(2)}`, 20, 40);
         s.text(`Gruntor start za: ${Math.max(0, 5 - millisElapsed / 1000).toFixed(1)}s`, 20, 60);
+        s.text(`Iteracje: ${iterationCount}`, 20, 80);
+        s.text(`Kroki Gruntora: ${Math.floor(gruntorSteps)}`, 20, 100);
       };
     }, sketchRef.current!);
 
@@ -255,16 +260,20 @@ const App: React.FC = () => {
   }, [alpha, beta, rho, resetFlag, triggerNewPaths, shouldRun]);
 
   return (
-    <div>
+  <div style={{ display: "flex", flexDirection: "row", alignItems: "flex-start" }}>
+    {/* LEWA STRONA */}
+    <div style={{ flex: 2 }}>
       <h1 style={{
-      textAlign: "center",
-      marginTop: "20px",
-      fontSize: "40px",
-      color: "#000",
-      fontFamily: "'MedievalSharp', cursive"
+        textAlign: "center",
+        marginTop: "20px",
+        fontSize: "40px",
+        color: "#000",
+        fontFamily: "'MedievalSharp', cursive"
       }}>
-      Przygoda Gruntora
-     </h1>
+        Przygoda Gruntora
+      </h1>
+
+      {/* Suwaki i przyciski */}
       <div style={{ padding: 20 }}>
         <label>α (depozyt): {alpha.toFixed(2)} </label>
         <input type="range" min="0" max="5" step="0.1" value={alpha} onChange={(e) => setAlpha(+e.target.value)} />
@@ -280,9 +289,40 @@ const App: React.FC = () => {
         <button onClick={() => setResetFlag((r) => !r)}>Resetuj symulację</button>
         <button onClick={() => setTriggerNewPaths((x) => x + 1)}>Wyznacz nowe trasy</button>
       </div>
+
+      {/* Plansza */}
       <div ref={sketchRef}></div>
     </div>
-  );
+
+    {/* PRAWA STRONA */}
+    <div style={{
+      flex: 1,
+      padding: "30px 20px",
+      backgroundColor: "#f7f2e7",
+      fontFamily: "'Times New Roman', serif",
+      fontSize: "25px",
+      lineHeight: "1.7",
+      color: "#333"
+    }}>
+      <h2 style={{
+        fontFamily: "'MedievalSharp', cursive",
+        fontSize: "40px",
+        color: "#444",
+        marginBottom: "15px"
+      }}>
+        Misja Gruntora: Ocalenie Księżniczki Liliany
+      </h2>
+      <p>
+        Kiedy zły smok Skaldra Czarnopłomyk porywa księżniczkę Lilianę i więzi ją w Baszcie Zmierzchu, dzielny, choć niepozorny ogr Gruntor rusza na ratunek.
+        Kierowany wspomnieniem dziecięcej przyjaźni i światłem jedwabnej wstążki, przemierza zdradliwy Labirynt Pięciu Dolin – pełen echa, mgieł i pułapek.
+        Towarzyszy mu armia mrówek królowej Myrmidii, która długiem wdzięczności wspiera go algorytmiczną mądrością.
+        Mrówki znaczą bezpieczną ścieżkę fosforyzującymi feromonami, a Gruntor podąża za światłem, by zmierzyć się z ogniem smoka i ocalić ukochaną.
+        W tej misji nie siła, lecz odwaga i przyjaźń prowadzą do zwycięstwa.
+      </p>
+    </div>
+  </div>
+);
+
 };
 
 export default App;
