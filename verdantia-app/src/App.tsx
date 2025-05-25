@@ -33,28 +33,30 @@ const nodeMap: { [key: string]: Node } = Object.fromEntries(
 
 const App: React.FC = () => {
   const sketchRef = useRef<HTMLDivElement>(null);
-  const [alpha, setAlpha] = useState(1.0); // siła depozytu
-  const [beta, setBeta] = useState(2.0);   // (niewykorzystane teraz, ale zostawione)
-  const [rho, setRho] = useState(0.5);     // współczynnik odparowania
+  const [alpha, setAlpha] = useState(1.0);
+  const [beta, setBeta] = useState(2.0);
+  const [rho, setRho] = useState(0.5);
+  const [shouldRun, setShouldRun] = useState(true);
+  const [resetFlag, setResetFlag] = useState(false);
+  const [triggerNewPaths, setTriggerNewPaths] = useState(0);
+
+  // 🐜 Utrwalenie stanu Gruntora i czasu startu
+  const gruntorIndex = useRef(0);
+  const gruntorProgress = useRef(0);
+  const startTime = useRef(0);
 
   useEffect(() => {
     const pInst = new p5((s: any) => {
-      // ===== zmienne singleton dla sketch’a =====
       let edges: Edge[] = [];
       let pheromones = new Map<string, number>();
       let bestPath: string[] = [];
-      let gruntorIndex = 0;
-      let gruntorProgress = 0;
-      const gruntorSpeed = 10;
       let scoutCounts: { [key: string]: number } = {};
       let animatedScoutAnts: { path: string[]; index: number; progress: number }[] = [];
+      const gruntorSpeed = 50;
       const scoutAnts = 100;
       let allPaths: string[][] = [];
       const edgeMap = new Map<string, number>();
-
-      // nowość: najbliższy sąsiad BG1
       let nearestNeighbor: string;
-      let nearestKey: string;
 
       function generateAllEdges(): Edge[] {
         const list: Edge[] = [];
@@ -73,6 +75,7 @@ const App: React.FC = () => {
       }
 
       function initializePheromones() {
+        pheromones.clear();
         for (let e of edges) {
           pheromones.set(`${e.from}-${e.to}`, 1.0);
         }
@@ -98,20 +101,23 @@ const App: React.FC = () => {
         return paths;
       }
 
-      s.setup = () => {
-        s.createCanvas(1000, 1500);
-        s.frameRate(60);
+      function findNearestFromBG1() {
+        let minD = Infinity;
+        nearestNeighbor = "";
+        for (let n of nodes) {
+          if (n.id === "BG1") continue;
+          const d = Math.hypot(nodeMap["BG1"].x - n.x, nodeMap["BG1"].y - n.y);
+          if (d < minD) {
+            minD = d;
+            nearestNeighbor = n.id;
+          }
+        }
+      }
 
-        // 1) krawędzie + dystanse
-        edges = generateAllEdges();
-        // 2) feromony
-        initializePheromones();
-        // 3) drogi
+      function regeneratePaths() {
         allPaths = generateThreePaths();
-
-        // 4) przygotowanie scoutów
-        animatedScoutAnts = [];
         scoutCounts = {};
+        animatedScoutAnts = [];
         for (let i = 0; i < scoutAnts; i++) {
           const path = allPaths[Math.floor(Math.random() * allPaths.length)];
           animatedScoutAnts.push({ path, index: 0, progress: 0 });
@@ -120,8 +126,6 @@ const App: React.FC = () => {
             scoutCounts[key] = (scoutCounts[key] || 0) + 1;
           }
         }
-
-        // 5) wybór bestPath
         let maxSum = -1;
         for (let p of allPaths) {
           let sum = 0;
@@ -133,30 +137,30 @@ const App: React.FC = () => {
             bestPath = p;
           }
         }
+      }
 
-        // 6) wyliczenie najbliższego węzła od BG1
-        let minD = Infinity;
-        nearestNeighbor = "";
-        for (let n of nodes) {
-          if (n.id === "BG1") continue;
-          const d = Math.hypot(
-            nodeMap["BG1"].x - n.x,
-            nodeMap["BG1"].y - n.y
-          );
-          if (d < minD) {
-            minD = d;
-            nearestNeighbor = n.id;
-          }
-        }
-        nearestKey = `BG1-${nearestNeighbor}`;
+      s.setup = () => {
+        s.createCanvas(1000, 1500);
+        s.frameRate(60);
+        edges = generateAllEdges();
+        initializePheromones();
+        findNearestFromBG1();
+        regeneratePaths();
+
+        // Reset stanu Gruntora i zegara
+        gruntorIndex.current = 0;
+        gruntorProgress.current = 0;
+        startTime.current = s.millis();
       };
 
       s.draw = () => {
-        // ==== 0) odparowanie feromonu ====
+        if (!shouldRun) return;
+
+        // Parowanie i depozyt feromonów
         for (let key of pheromones.keys()) {
           pheromones.set(key, pheromones.get(key)! * (1 - rho));
         }
-        // depozyt feromonu na bestPath
+
         for (let i = 0; i < bestPath.length - 1; i++) {
           const key = `${bestPath[i]}-${bestPath[i + 1]}`;
           const dist = edgeMap.get(key) || 1;
@@ -167,7 +171,6 @@ const App: React.FC = () => {
         s.background(10, 20, 30);
         s.textSize(16);
 
-        // ==== 1) rysowanie krawędzi ====
         const maxP = Math.max(...Array.from(pheromones.values()));
         for (let e of edges) {
           const A = nodeMap[e.from], B = nodeMap[e.to];
@@ -182,7 +185,7 @@ const App: React.FC = () => {
           s.line(A.x, A.y, B.x, B.y);
         }
 
-        // ==== 2) węzły ====
+        // Węzły
         for (let n of nodes) {
           s.fill(255);
           s.noStroke();
@@ -191,7 +194,7 @@ const App: React.FC = () => {
           s.text(n.name, n.x + 10, n.y);
         }
 
-        // ==== 3) animacja skautów ====
+        // Skauci
         animatedScoutAnts.forEach((ant, idx) => {
           if (ant.index < ant.path.length - 1) {
             const A = nodeMap[ant.path[ant.index]];
@@ -211,14 +214,14 @@ const App: React.FC = () => {
           }
         });
 
-        // ==== 4) animacja Gruntora ====
-        // gotowość startu: czy któryś scout wszedł już do nearestNeighbor?
-        const startReady = animatedScoutAnts.some(
+        // Gruntor – rusza dopiero po 5s
+        const millisElapsed = s.millis() - startTime.current;
+        const scoutsReady = animatedScoutAnts.some(
           (ant) => ant.index >= 1 && ant.path[1] === nearestNeighbor
         );
+        const startReady = millisElapsed > 5000 && scoutsReady;
 
         if (!startReady) {
-          // rysuj Gruntora na polu startowym BG1
           const S = nodeMap["BG1"];
           s.fill(0, 200, 0);
           s.noStroke();
@@ -226,17 +229,16 @@ const App: React.FC = () => {
           s.fill(255);
           s.text("Gruntor", S.x - 20, S.y - 40);
         } else {
-          // rusz Gruntor wzdłuż bestPath
-          if (bestPath.length > 1 && gruntorIndex < bestPath.length - 1) {
-            const A = nodeMap[bestPath[gruntorIndex]];
-            const B = nodeMap[bestPath[gruntorIndex + 1]];
+          if (bestPath.length > 1 && gruntorIndex.current < bestPath.length - 1) {
+            const A = nodeMap[bestPath[gruntorIndex.current]];
+            const B = nodeMap[bestPath[gruntorIndex.current + 1]];
             const d = Math.hypot(A.x - B.x, A.y - B.y);
-            gruntorProgress += gruntorSpeed / 60;
-            if (gruntorProgress >= d) {
-              gruntorIndex++;
-              gruntorProgress = 0;
+            gruntorProgress.current += gruntorSpeed / 60;
+            if (gruntorProgress.current >= d) {
+              gruntorIndex.current++;
+              gruntorProgress.current = 0;
             }
-            const t = gruntorProgress / d;
+            const t = gruntorProgress.current / d;
             const x = s.lerp(A.x, B.x, t);
             const y = s.lerp(A.y, B.y, t);
             s.fill(0, 200, 0);
@@ -247,54 +249,32 @@ const App: React.FC = () => {
           }
         }
 
-        // ==== 5) HUD ====
         s.fill(255);
         s.noStroke();
-        s.text(
-          `α=${alpha.toFixed(2)}  β=${beta.toFixed(2)}  ρ=${rho.toFixed(2)}`,
-          20,
-          40
-        );
-        s.text(`Nearest: ${nearestNeighbor}`, 20, 60);
+        s.text(`α=${alpha.toFixed(2)}  β=${beta.toFixed(2)}  ρ=${rho.toFixed(2)}`, 20, 40);
+        s.text(`Gruntor start za: ${Math.max(0, 5 - millisElapsed / 1000).toFixed(1)}s`, 20, 60);
       };
     }, sketchRef.current!);
 
     return () => pInst.remove();
-  }, [alpha, beta, rho]);
+  }, [alpha, beta, rho, resetFlag, triggerNewPaths, shouldRun]);
 
   return (
     <div>
       <div style={{ padding: 20 }}>
         <label>α (depozyt): {alpha.toFixed(2)} </label>
-        <input
-          type="range"
-          min="0"
-          max="5"
-          step="0.1"
-          value={alpha}
-          onChange={(e) => setAlpha(+e.target.value)}
-        />
+        <input type="range" min="0" max="5" step="0.1" value={alpha} onChange={(e) => setAlpha(+e.target.value)} />
         <br />
         <label>β (trasa): {beta.toFixed(2)} </label>
-        <input
-          type="range"
-          min="0"
-          max="5"
-          step="0.1"
-          value={beta}
-          onChange={(e) => setBeta(+e.target.value)}
-        />
+        <input type="range" min="0" max="5" step="0.1" value={beta} onChange={(e) => setBeta(+e.target.value)} />
         <br />
         <label>ρ (odparowanie): {rho.toFixed(2)} </label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={rho}
-          onChange={(e) => setRho(+e.target.value)}
-        />
+        <input type="range" min="0" max="1" step="0.05" value={rho} onChange={(e) => setRho(+e.target.value)} />
         <br />
+        <button onClick={() => setShouldRun(true)}>Start</button>
+        <button onClick={() => setShouldRun(false)}>Stop</button>
+        <button onClick={() => setResetFlag((r) => !r)}>Resetuj symulację</button>
+        <button onClick={() => setTriggerNewPaths((x) => x + 1)}>Wyznacz nowe trasy</button>
       </div>
       <div ref={sketchRef}></div>
     </div>
